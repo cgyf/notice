@@ -1,0 +1,27 @@
+[package]
+name = "app"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+log = "0.4"
+android_logger = "0.13"
+android-activity = { version = "0.6", features = ["native-activity"] }
+slint = "1.18.0"
+
+[build-dependencies]
+slint-build = "1.5"
+[package.metadata.android]
+# 包名（必填）
+package = "io.github.cgyf.notice"
+target_sdk_version = 30 
+# 要编译的 Android 目标架构（Rust target 名称，不是 ABI 名）
+build_targets = ["aarch64-linux-android"]
+
+		# 可选配置
+resources = "resources"   # 资源文件夹
+assets = "assets"         # 资产文件夹
+apk_name = "notice"                # 最终 APK 文件名
