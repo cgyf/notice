@@ -13,7 +13,7 @@ android-activity = { version = "0.6", features = ["native-activity"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 # 注意：slint 的内联表必须写在同一行，不能换行
-slint = { version = "1.18.0", default-features = false, features = ["backend-android", "renderer-femtovg"] }
+slint = { version = "1.18.0",features = ["backend-default", "renderer-femtovg"] }
 
 [package.metadata.android]
 # 包名（必填）
