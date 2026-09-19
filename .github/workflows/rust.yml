@@ -18,9 +18,9 @@ jobs:
     - uses: actions/checkout@v4
     - name: setup compile env
       run: rustup target add aarch64-linux-android
-    - name: install rapk --target aarch64-linux-android
+    - name: install rapk
       run: cargo install cargo-rapk
-    - name: Build
+    - name: Build --target aarch64-linux-android
       run: cargo rapk build
-    - name: Run tests
+    - name: Run tests --target aarch64-linux-android
       run: cargo test --verbose
