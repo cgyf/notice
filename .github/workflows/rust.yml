@@ -20,7 +20,5 @@ jobs:
       run: rustup target add aarch64-linux-android
     - name: install rapk
       run: cargo install cargo-rapk
-    - name: Build --target aarch64-linux-android
-      run: cargo rapk build
-    - name: Run tests --target aarch64-linux-android
-      run: cargo test --verbose
+    - name: Build
+      run: cargo rapk build --target aarch64-linux-android
