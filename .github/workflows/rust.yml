@@ -17,7 +17,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: install rapk
-      run: cargo install rapk
+      run: cargo install cargo-rapk
     - name: Build
       run: cargo rapk build --verbose
     - name: Run tests
