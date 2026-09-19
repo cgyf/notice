@@ -10,10 +10,13 @@ crate-type = ["cdylib"]
 log = "0.4"
 android_logger = "0.13"
 android-activity = { version = "0.6", features = ["native-activity"] }
-slint = "1.18.0"
 
-[build-dependencies]
-slint-build = "1.5"
+[target.'cfg(target_os = "android")'.dependencies]
+# 开启 backend-android，使用软件渲染，关掉无用的 system-tray
+slint = { version = "1.18.0",
+	default-features = false,
+	features = ["backend-android", "renderer-femtovg"] }
+
 [package.metadata.android]
 # 包名（必填）
 package = "io.github.cgyf.notice"
