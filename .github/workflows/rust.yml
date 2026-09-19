@@ -19,6 +19,6 @@ jobs:
     - name: install rapk
       run: cargo install cargo-rapk
     - name: Build
-      run: cargo rapk build --verbose
+      run: cargo rapk build
     - name: Run tests
       run: cargo test --verbose
