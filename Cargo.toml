@@ -12,19 +12,17 @@ android_logger = "0.13"
 android-activity = { version = "0.6", features = ["native-activity"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
-# 开启 backend-android，使用软件渲染，关掉无用的 system-tray
-slint = { version = "1.18.0",
-	default-features = false,
-	features = ["backend-android", "renderer-femtovg"] }
+# 注意：slint 的内联表必须写在同一行，不能换行
+slint = { version = "1.18.0", default-features = false, features = ["backend-android", "renderer-femtovg"] }
 
 [package.metadata.android]
 # 包名（必填）
 package = "io.github.cgyf.notice"
-target_sdk_version = 30 
-# 要编译的 Android 目标架构（Rust target 名称，不是 ABI 名）
+target_sdk_version = 30
+# 要编译的 Android 目标架构
 build_targets = ["aarch64-linux-android"]
 
-		# 可选配置
-resources = "resources"   # 资源文件夹
+# 可选配置
+resources = "resources"   # 资源文件夹（注意：这个文件夹必须真实存在，否则依然会报错）
 assets = "assets"         # 资产文件夹
-apk_name = "notice"                # 最终 APK 文件名
+apk_name = "notice"       # 最终 APK 文件名
