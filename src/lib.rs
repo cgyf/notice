@@ -1,6 +1,6 @@
-use std::sync::OnceLock;
 use android_activity::AndroidApp;
 use log::LevelFilter;
+use std::sync::OnceLock;
 
 // 直接把 UI 定义写在代码里，不需要 build.rs 和额外的 slint 文件
 slint::slint! {
@@ -8,10 +8,10 @@ slint::slint! {
         width: 400px;
         height: 300px;
         background: #202020;
-        
+
         Text {
             text: "Hello Slint!";
-            font-size: 40px;
+            font-size: 60px;
             color: #4CAF50;
             horizontal-alignment: center;
             vertical-alignment: center;
@@ -38,6 +38,6 @@ fn android_main(app: AndroidApp) {
 
     // 创建并运行界面
     AppWindow::new().unwrap().run().unwrap();
-    
+
     log::info!("Slint 窗口关闭");
 }
