@@ -1,5 +1,5 @@
 [package]
-name = "app"
+name = "test"
 version = "0.1.0"
 edition = "2024"
 
@@ -8,11 +8,10 @@ crate-type = ["cdylib"]
 
 [dependencies]
 log = "0.4"
-android_logger = "0.13"
+android_logger = "0.15.1"
 android-activity = { version = "0.6", features = ["native-activity"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
-# 注意：slint 的内联表必须写在同一行，不能换行
 slint = { version = "1.18.0",features = ["backend-android-activity-06", "renderer-femtovg"] }
 
 [package.metadata.android]
@@ -21,8 +20,7 @@ package = "io.github.cgyf.notice"
 target_sdk_version = 30
 # 要编译的 Android 目标架构
 build_targets = ["aarch64-linux-android"]
-
 # 可选配置
 resources = "resources"   # 资源文件夹（注意：这个文件夹必须真实存在，否则依然会报错）
 assets = "assets"         # 资产文件夹
-apk_name = "notice"       # 最终 APK 文件名
+apk_name = "test"       # 最终 APK 文件名
