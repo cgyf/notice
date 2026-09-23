@@ -6,22 +6,8 @@ use android_activity::AndroidApp;
 use log::LevelFilter;
 use std::sync::OnceLock;
 
-// 直接把 UI 定义写在代码里，不需要 build.rs 和额外的 slint 文件
-slint::slint! {
-    export component AppWindow inherits Window {
-        width: 400px;
-        height: 300px;
-        background: #202020;
-
-        Text {
-            text: "Hello Slint!";
-            font-size: 60px;
-            color: #4CAF50;
-            horizontal-alignment: center;
-            vertical-alignment: center;
-        }
-    }
-}
+// 引入 ui/ 下的 UI：由 build.rs 调用 slint-build 编译，生成 AppWindow 等类型。
+slint::include_modules!();
 
 static LOGGER_ONCE: OnceLock<()> = OnceLock::new();
 

@@ -17,6 +17,12 @@ android-activity = { version = "0.6", features = ["native-activity"] }
 # Android 上是被禁用的（没有任何后端会用它），所以不需要也不能靠 renderer-femtovg 换渲染器。
 slint = { version = "1.18.0", features = ["backend-android-activity-06"] }
 
+# build.rs 用的编译器（把 ui/*.slint 编译成 Rust 代码）。
+# 构建脚本永远在宿主平台上编译运行，所以这里不能挂在 android target 下面，
+# 否则在桌面平台 cargo check 时会找不到 slint_build。
+[build-dependencies]
+slint-build = "1.18.0"
+
 [package.metadata.android]
 # 包名（必填）
 package = "io.github.cgyf.notice"

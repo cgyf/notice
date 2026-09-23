@@ -1,0 +1,16 @@
+// 主界面：Slint 声明式 UI 都放在 ui/ 下，改界面不需要动 Rust 代码。
+// 这个文件由 build.rs 编译，src/lib.rs 通过 slint::include_modules!() 引入。
+
+export component AppWindow inherits Window {
+    width: 400px;
+    height: 300px;
+    background: #202020;
+
+    Text {
+        text: "Hello Slint!";
+        font-size: 60px;
+        color: #4CAF50;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
