@@ -19,6 +19,13 @@ jobs:
     - name: setup compile env
       run: rustup target add aarch64-linux-android
     - name: install rapk
-      run: cargo install cargo-rapk
+      # 固定版本 + --locked，避免上游发新版时 CI 突然挂掉
+      run: cargo install cargo-rapk --version "=0.22.1" --locked
     - name: Build
       run: cargo rapk build --target aarch64-linux-android
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-apk
+        path: "target/debug/apk/*.apk"
+        if-no-files-found: error

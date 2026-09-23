@@ -1,3 +1,7 @@
+// 整个 crate 只在 Android 上编译：slint / android_logger / android-activity 都声明在
+// Cargo.toml 的 cfg(target_os = "android") 依赖里，非 Android 平台下这个 crate 是空的。
+#![cfg(target_os = "android")]
+
 use android_activity::AndroidApp;
 use log::LevelFilter;
 use std::sync::OnceLock;

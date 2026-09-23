@@ -6,21 +6,33 @@ edition = "2024"
 [lib]
 crate-type = ["cdylib"]
 
-[dependencies]
+# 这是一个只在 Android 上构建的 crate（见 src/lib.rs 顶部的 #![cfg(target_os = "android")]），
+# 所以依赖全部挂在 Android target 下面：在桌面平台上跑 cargo check / rust-analyzer 也不会
+# 报 "undeclared crate `slint`" 之类的错。
+[target.'cfg(target_os = "android")'.dependencies]
 log = "0.4"
 android_logger = "0.15.1"
 android-activity = { version = "0.6", features = ["native-activity"] }
-
-[target.'cfg(target_os = "android")'.dependencies]
-slint = { version = "1.18.0",features = ["backend-android-activity-06", "renderer-femtovg"] }
+# 只开 backend-android-activity-06：Slint 的 Android 后端固定使用 Skia 渲染，femtovg 在
+# Android 上是被禁用的（没有任何后端会用它），所以不需要也不能靠 renderer-femtovg 换渲染器。
+slint = { version = "1.18.0", features = ["backend-android-activity-06"] }
 
 [package.metadata.android]
 # 包名（必填）
 package = "io.github.cgyf.notice"
-target_sdk_version = 30
 # 要编译的 Android 目标架构
 build_targets = ["aarch64-linux-android"]
 # 可选配置
 resources = "resources"   # 资源文件夹（注意：这个文件夹必须真实存在，否则依然会报错）
 assets = "assets"         # 资产文件夹
-apk_name = "test"       # 最终 APK 文件名
+apk_name = "test"         # 最终 APK 文件名
+
+# SDK 版本必须写在这张表里。写在 [package.metadata.android] 顶层会被当作未知字段静默忽略，
+# 那种情况下 APK 用的是 NDK 的默认值（这里是 35），写在下面的值才真正生效。
+[package.metadata.android.sdk]
+# Slint 的 Android 后端要求 API 26 及以上（直接调用 AChoreographer 等 API 24/26 的符号），
+# cargo-rapk 不写默认是 23，那样在 Android 6/7 上会加载失败。
+min_sdk_version = 26
+# 目标 API 30 需要本机装有 platforms;android-30；GitHub 的 ubuntu runner 只装了 34~37，
+# 所以这里用 35（同时也是 Google Play 目前要求的 targetSdk 下限）。
+target_sdk_version = 35
