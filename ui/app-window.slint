@@ -1,16 +1,690 @@
 // 主界面：Slint 声明式 UI 都放在 ui/ 下，改界面不需要动 Rust 代码。
 // 这个文件由 build.rs 编译，src/lib.rs 通过 slint::include_modules!() 引入。
+//
+// 文件结构：
+//   1. Palette   —— 配色表，想换主题只改这一块
+//   2. Icons     —— 24x24 线性图标的 SVG path（用 Path 画，不依赖 emoji 字体）
+//   3. 组件       —— Icon / Chip / NoticeCard / NavCell
+//   4. AppWindow —— 组装：标题栏 + 搜索框 + 分段筛选 + 卡片列表 + 底部导航
 
-export component AppWindow inherits Window {
-    width: 400px;
-    height: 300px;
-    background: #202020;
+// ---------------------------------------------------------------------------
+// 1. 配色
+// ---------------------------------------------------------------------------
+global Palette {
+    // 页面背景（深色渐变的两端）
+    out property <color> bg-top: #0a0d18;
+    out property <color> bg-bottom: #101728;
 
-    Text {
-        text: "Hello Slint!";
-        font-size: 60px;
-        color: #4CAF50;
+    // 卡片 / 容器
+    out property <color> surface: #141b2c;
+    out property <color> surface-2: #1b2436;
+    out property <color> stroke: #ffffff14; // 8% 白：细描边
+    out property <color> stroke-strong: #ffffff2e;
+
+    // 文字三级灰阶
+    out property <color> text-1: #f2f5ff; // 标题
+    out property <color> text-2: #a5afc7; // 正文
+    out property <color> text-3: #6c7793; // 辅助信息
+
+    // 品牌色与状态色
+    out property <color> accent: #7c8cff;
+    out property <color> accent-2: #46d0ff;
+    out property <color> ok: #3ddc97;
+    out property <color> warn: #ffb454;
+    out property <color> violet: #b388ff;
+}
+
+// ---------------------------------------------------------------------------
+// 2. 图标：统一 24x24 视口的描边路径，风格一致且不依赖字体里的 emoji
+// ---------------------------------------------------------------------------
+global Icons {
+    out property <string> search: "M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14M20.5 20.5l-3.6-3.6";
+    out property <string> sliders: "M4 21v-6M4 11V3M12 21v-10M12 7V3M20 21v-4M20 13V3M1.5 15h5M9.5 7h5M17.5 17h5";
+    out property <string> bell: "M6 9a6 6 0 0 1 12 0c0 6 2.5 8 2.5 8H3.5S6 15 6 9M10.3 20.5a2 2 0 0 0 3.4 0";
+    out property <string> home: "M3 10.5 12 3l9 7.5V20a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 20zM9.5 21.5v-7h5v7";
+    out property <string> star: "M12 3.5l2.7 5.4 6 .9-4.4 4.2 1.1 6-5.4-2.9-5.4 2.9 1.1-6L3.3 9.8l6-.9z";
+    out property <string> user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M5 20.5a7 7 0 0 1 14 0";
+    out property <string> shield: "M12 3l7 3v6c0 4.4-2.9 7.4-7 9-4.1-1.6-7-4.6-7-9V6zM9.2 12l2 2 3.6-3.8";
+    out property <string> refresh: "M20 5.5v4h-4M20 9.5a8 8 0 0 0-14-3.6M4 18.5v-4h4M4 14.5a8 8 0 0 0 14 3.6";
+    out property <string> megaphone: "M4 10.5v3a1 1 0 0 0 1 1h2l7 4V5.5l-7 4H5a1 1 0 0 0-1 1zM17 9.5a3.5 3.5 0 0 1 0 5";
+    out property <string> chevron: "m9.5 5.5 6.5 6.5-6.5 6.5";
+}
+
+// 通知类型：0=公告 1=活动 2=安全 3=更新
+struct Notice {
+    kind: int,
+    title: string,
+    body: string,
+    tag: string,
+    time: string,
+    unread: bool,
+    important: bool,
+}
+
+struct NavItem {
+    label: string,
+    icon: string,
+    badge: int,
+}
+
+// 按类型取颜色 / 图标
+global Style {
+    public pure function kind-color(kind: int) -> color {
+        kind == 0
+            ? Palette.accent
+            : (kind == 1 ? Palette.violet : (kind == 2 ? Palette.ok : Palette.warn))
+    }
+
+    public pure function kind-icon(kind: int) -> string {
+        kind == 0 ? Icons.bell : (kind == 1 ? Icons.megaphone : (kind == 2 ? Icons.shield : Icons.refresh))
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 3. 可复用组件
+// ---------------------------------------------------------------------------
+
+// 统一尺寸的线性图标
+component Icon inherits Path {
+    in property <string> d;
+    in-out property <color> tint: Palette.text-2;
+    in property <length> icon-size: 20px;
+
+    width: icon-size;
+    height: icon-size;
+    viewbox-width: 24;
+    viewbox-height: 24;
+    commands: d;
+    fill: transparent;
+    stroke: tint;
+    stroke-width: 1.8px;
+    stroke-line-cap: round;
+    stroke-line-join: round;
+
+    animate tint { duration: 200ms; }
+}
+
+// 小圆角标签（「公告」「未读」这类状态）
+component Chip inherits Rectangle {
+    in property <string> label;
+    in property <color> tint: Palette.accent;
+    in property <bool> solid: false;
+
+    height: 22px;
+    width: chip_label.preferred-width + 20px;
+    border-radius: 11px;
+    background: solid ? tint : tint.with-alpha(0.14);
+
+    chip_label := Text {
+        text: label;
+        font-size: 11px;
+        font-weight: 600;
+        color: solid ? #ffffff : tint;
         horizontal-alignment: center;
         vertical-alignment: center;
+        x: 10px;
+        y: 0;
+        width: parent.width - 20px;
+        height: parent.height;
+    }
+}
+
+// 一条通知卡片
+component NoticeCard inherits Rectangle {
+    in property <Notice> notice;
+    callback open();
+
+    height: card-layout.preferred-height;
+    border-radius: 20px;
+    border-width: 1px;
+    border-color: notice.unread ? Palette.accent.with-alpha(0.34) : Palette.stroke;
+    background: touch.pressed ? Palette.surface-2 : Palette.surface;
+    drop-shadow-color: #00000059;
+    drop-shadow-blur: 16px;
+    drop-shadow-offset-y: 8px;
+
+    // 按下去时轻微缩小，给点触感
+    transform-scale-x: touch.pressed ? 0.985 : 1.0;
+    transform-scale-y: touch.pressed ? 0.985 : 1.0;
+
+    animate background { duration: 120ms; }
+    animate border-color { duration: 200ms; }
+    animate transform-scale-x { duration: 120ms; }
+    animate transform-scale-y { duration: 120ms; }
+
+    card-layout := VerticalLayout {
+        padding: 14px;
+        spacing: 12px;
+
+        HorizontalLayout {
+            spacing: 12px;
+            cross-axis-alignment: center;
+
+            // 左侧图标底座
+            Rectangle {
+                width: 42px;
+                height: 42px;
+                border-radius: 14px;
+                background: Style.kind-color(notice.kind).with-alpha(notice.unread ? 0.24 : 0.13);
+                border-width: 1px;
+                border-color: Style.kind-color(notice.kind).with-alpha(notice.unread ? 0.34 : 0.16);
+
+                Icon {
+                    d: Style.kind-icon(notice.kind);
+                    tint: Style.kind-color(notice.kind);
+                    icon-size: 21px;
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                }
+            }
+
+            VerticalLayout {
+                spacing: 5px;
+
+                Text {
+                    text: notice.title;
+                    font-size: 15px;
+                    font-weight: notice.unread ? 700 : 500;
+                    color: notice.unread ? Palette.text-1 : Palette.text-2;
+                    height: 20px;
+                    overflow: elide;
+                }
+
+                Text {
+                    text: notice.body;
+                    font-size: 13px;
+                    color: Palette.text-2;
+                    // 多行正文：clip + max-lines 才能正常铺满整行；
+                    // 用 elide 的话 Slint 会把文本盒压到只剩省略号的宽度（CJK 尤其明显）。
+                    wrap: word-wrap;
+                    overflow: clip;
+                    max-lines: 2;
+                }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 8px;
+            cross-axis-alignment: center;
+
+            Chip {
+                label: notice.tag;
+                tint: Style.kind-color(notice.kind);
+            }
+
+            if notice.important: Chip {
+                label: "重要";
+                tint: Palette.warn;
+            }
+
+            Rectangle { horizontal-stretch: 1; } // 撑开：把时间和箭头挤到最右边
+
+            if notice.unread: Rectangle {
+                width: 7px;
+                height: 7px;
+                border-radius: 4px;
+                background: Palette.accent;
+            }
+
+            Text {
+                text: notice.time;
+                font-size: 11px;
+                color: Palette.text-3;
+            }
+
+            Icon {
+                d: Icons.chevron;
+                tint: Palette.text-3;
+                icon-size: 14px;
+            }
+        }
+    }
+
+    touch := TouchArea {
+        clicked => { root.open(); }
+    }
+}
+
+// 底部导航的一格
+component NavCell inherits Rectangle {
+    in property <string> label;
+    in property <string> icon;
+    in property <int> badge: 0;
+    in property <bool> active: false;
+    callback select();
+
+    height: 64px;
+    background: transparent;
+
+    // 选中时的高亮胶囊
+    Rectangle {
+        width: 46px;
+        height: 30px;
+        border-radius: 15px;
+        background: Palette.accent.with-alpha(0.16);
+        opacity: root.active ? 1 : 0;
+        x: (parent.width - self.width) / 2;
+        y: 9px;
+        animate opacity { duration: 180ms; }
+    }
+
+    Icon {
+        d: root.icon;
+        tint: root.active ? Palette.accent : Palette.text-3;
+        icon-size: 21px;
+        x: (parent.width - self.width) / 2;
+        y: 13px;
+    }
+
+    Text {
+        text: root.label;
+        font-size: 10px;
+        font-weight: 600;
+        color: root.active ? Palette.accent : Palette.text-3;
+        horizontal-alignment: center;
+        x: 0;
+        y: 42px;
+        width: parent.width;
+        height: 13px;
+        animate color { duration: 180ms; }
+    }
+
+    // 未读数小角标
+    if root.badge > 0: Rectangle {
+        width: 16px;
+        height: 16px;
+        border-radius: 8px;
+        background: Palette.accent;
+        x: parent.width / 2 + 6px;
+        y: 8px;
+
+        Text {
+            text: "\{root.badge}";
+            font-size: 9px;
+            font-weight: 700;
+            color: #ffffff;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            width: parent.width;
+            height: parent.height;
+        }
+    }
+
+    TouchArea {
+        clicked => { root.select(); }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 4. 主界面
+// ---------------------------------------------------------------------------
+export component AppWindow inherits Window {
+    title: "通知中心";
+    // 注意：这里不要写死 width/height。写死会把根元素卡在那个尺寸，
+    // 真机上就不会跟着屏幕大小走；窗口尺寸交给平台（Android 就是整屏）。
+    background: @linear-gradient(180deg, Palette.bg-top 0%, Palette.bg-bottom 100%);
+
+    in-out property <[Notice]> notices: [
+        {
+            kind: 0,
+            title: "Slint 1.18 已发布",
+            body: "新的渲染后端上线，启动更快、动画更顺滑，建议升级。",
+            tag: "公告",
+            time: "09:24",
+            unread: true,
+            important: true,
+        },
+        {
+            kind: 1,
+            title: "本周五线上分享会",
+            body: "主题：用一个下午写个 Android 小程序。报名截止周四 18:00。",
+            tag: "活动",
+            time: "昨天",
+            unread: true,
+            important: false,
+        },
+        {
+            kind: 2,
+            title: "新的登录设备",
+            body: "Pixel 8 · 上海 · 刚刚。如果不是你本人操作，请立刻修改密码。",
+            tag: "安全",
+            time: "昨天",
+            unread: true,
+            important: false,
+        },
+        {
+            kind: 3,
+            title: "构建流水线已修复",
+            body: "缓存策略调整完成，CI 构建时间从 6 分钟降到 3 分钟。",
+            tag: "更新",
+            time: "周二",
+            unread: false,
+            important: false,
+        },
+        {
+            kind: 1,
+            title: "十二月社区投票开启",
+            body: "为你最想要的新特性投上一票，投票结果会在下次迭代里优先实现。",
+            tag: "活动",
+            time: "上周",
+            unread: false,
+            important: false,
+        },
+    ];
+
+    property <[NavItem]> nav-items: [
+        { label: "首页", icon: Icons.home, badge: 0 },
+        { label: "通知", icon: Icons.bell, badge: 3 },
+        { label: "收藏", icon: Icons.star, badge: 0 },
+        { label: "我的", icon: Icons.user, badge: 0 },
+    ];
+
+    // 当前选中的分段（0=全部 1=未读 2=重要）与底部导航项，Rust 侧也可以设置
+    in-out property <int> tab: 0;
+    in-out property <int> nav: 1;
+    // 顶部日期文案（真实项目里可以由 Rust 侧填今天的日期）
+    in-out property <string> today: "2026 年 9 月 24 日 · 星期四";
+
+    // 刘海屏 / 手势条留白；桌面预览时 safe-area-insets 是 0，所以给个最小值
+    property <length> pad-top: max(self.safe-area-insets.top, 18px);
+    property <length> pad-bottom: max(self.safe-area-insets.bottom, 8px);
+    property <length> nav-bar-height: 64px + self.pad-bottom;
+
+    // 背景光晕（纯装饰，让深色背景不那么平）
+    Rectangle {
+        x: -90px;
+        y: -150px;
+        width: 340px;
+        height: 340px;
+        border-radius: 170px;
+        background: @radial-gradient(circle, Palette.accent.with-alpha(0.30) 0%, transparent 70%);
+    }
+    Rectangle {
+        x: parent.width - 180px;
+        y: -70px;
+        width: 280px;
+        height: 280px;
+        border-radius: 140px;
+        background: @radial-gradient(circle, Palette.accent-2.with-alpha(0.18) 0%, transparent 70%);
+    }
+
+    // 内容区（可上下滑动，底部让开导航栏）
+    Flickable {
+        x: 0;
+        y: 0;
+        width: parent.width;
+        height: parent.height - nav-bar.height;
+        // 内容高度显式绑定：内部用了 for 循环，Flickable 不会自己算高度
+        content-width: self.width;
+        content-height: content-layout.preferred-height;
+
+        content-layout := VerticalLayout {
+            // 手机上就是整屏宽；平板/大屏时限制一下宽度并居中，免得被拉得很散
+            width: min(parent.width, 520px);
+            x: (parent.width - self.width) / 2;
+            padding-left: 20px;
+            padding-right: 20px;
+            padding-top: pad-top + 8px;
+            padding-bottom: 24px;
+            spacing: 16px;
+
+            // ---- 标题栏 ----
+            HorizontalLayout {
+                spacing: 14px;
+                cross-axis-alignment: center;
+
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    spacing: 6px;
+
+                    Text {
+                        text: root.today;
+                        font-size: 12px;
+                        color: Palette.text-3;
+                    }
+
+                    Text {
+                        text: "通知中心";
+                        font-size: 26px;
+                        font-weight: 700;
+                        color: Palette.text-1;
+                        letter-spacing: 0.5px;
+                    }
+                }
+
+                Rectangle {
+                    width: 46px;
+                    height: 46px;
+                    border-radius: 23px;
+                    background: @linear-gradient(135deg, Palette.accent 0%, Palette.accent-2 100%);
+                    border-width: 1px;
+                    border-color: Palette.stroke-strong;
+
+                    Icon {
+                        d: Icons.user;
+                        tint: #ffffff;
+                        icon-size: 22px;
+                        x: (parent.width - self.width) / 2;
+                        y: (parent.height - self.height) / 2;
+                    }
+
+                    Rectangle { // 在线状态
+                        width: 13px;
+                        height: 13px;
+                        border-radius: 7px;
+                        background: Palette.ok;
+                        border-width: 2px;
+                        border-color: Palette.bg-top;
+                        x: parent.width - self.width;
+                        y: parent.height - self.height;
+                    }
+                }
+            }
+
+            // ---- 搜索框 ----
+            Rectangle {
+                height: 46px;
+                border-radius: 15px;
+                background: #ffffff0d;
+                border-width: 1px;
+                border-color: Palette.stroke;
+
+                HorizontalLayout {
+                    padding-left: 14px;
+                    padding-right: 6px;
+                    spacing: 10px;
+                    cross-axis-alignment: center;
+
+                    Icon {
+                        d: Icons.search;
+                        tint: Palette.text-3;
+                        icon-size: 19px;
+                    }
+
+                    Text {
+                        text: "搜索通知、发送人或关键词";
+                        font-size: 13px;
+                        color: Palette.text-3;
+                        vertical-alignment: center;
+                        horizontal-stretch: 1;
+                        overflow: elide;
+                    }
+
+                    Rectangle {
+                        width: 34px;
+                        height: 34px;
+                        border-radius: 11px;
+                        background: Palette.accent.with-alpha(0.16);
+
+                        Icon {
+                            d: Icons.sliders;
+                            tint: Palette.accent;
+                            icon-size: 17px;
+                            x: (parent.width - self.width) / 2;
+                            y: (parent.height - self.height) / 2;
+                        }
+                    }
+                }
+            }
+
+            // ---- 分段筛选：全部 / 未读 / 重要 ----
+            Rectangle {
+                height: 40px;
+                border-radius: 14px;
+                background: #ffffff0a;
+                border-width: 1px;
+                border-color: Palette.stroke;
+
+                // 选中态背景，切换时平滑滑动
+                Rectangle {
+                    property <length> seg-width: (parent.width - 10px) / 3;
+
+                    x: 5px + root.tab * self.seg-width;
+                    y: 5px;
+                    width: self.seg-width;
+                    height: 30px;
+                    border-radius: 10px;
+                    background: @linear-gradient(135deg, Palette.accent 0%, Palette.accent-2 100%);
+
+                    animate x { duration: 220ms; easing: ease-out; }
+                }
+
+                HorizontalLayout {
+                    x: 5px;
+                    y: 5px;
+                    width: parent.width - 10px;
+                    height: 30px;
+                    spacing: 0px;
+
+                    for label[i] in ["全部", "未读", "重要"]: Rectangle {
+                        horizontal-stretch: 1;
+                        background: transparent;
+
+                        Text {
+                            text: label;
+                            font-size: 13px;
+                            font-weight: root.tab == i ? 700 : 500;
+                            color: root.tab == i ? #ffffff : Palette.text-3;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                            animate color { duration: 200ms; }
+                        }
+
+                        TouchArea {
+                            clicked => { root.tab = i; }
+                        }
+                    }
+                }
+            }
+
+            // ---- 置顶公告 ----
+            Rectangle {
+                border-radius: 22px;
+                background: @linear-gradient(135deg, #6e63ff 0%, #3fa9f5 100%);
+                drop-shadow-color: Palette.accent.with-alpha(0.35);
+                drop-shadow-blur: 26px;
+                drop-shadow-offset-y: 10px;
+
+                HorizontalLayout {
+                    padding: 16px;
+                    spacing: 12px;
+                    cross-axis-alignment: center;
+
+                    VerticalLayout {
+                        horizontal-stretch: 1;
+                        spacing: 6px;
+
+                        Text {
+                            text: "置顶 · 公告";
+                            font-size: 11px;
+                            font-weight: 600;
+                            color: #ffffffb8;
+                            letter-spacing: 1px;
+                        }
+
+                        Text {
+                            text: "Slint 1.18 已发布";
+                            font-size: 17px;
+                            font-weight: 700;
+                            color: #ffffff;
+                            overflow: elide;
+                        }
+
+                        Text {
+                            text: "新的渲染后端，启动更快、动画更顺滑。";
+                            font-size: 13px;
+                            color: #ffffffd6;
+                            wrap: word-wrap;
+                            overflow: clip;
+                            max-lines: 2;
+                        }
+                    }
+
+                    Rectangle {
+                        width: 34px;
+                        height: 34px;
+                        border-radius: 17px;
+                        background: #ffffff2e;
+
+                        Icon {
+                            d: Icons.chevron;
+                            tint: #ffffff;
+                            icon-size: 16px;
+                            x: (parent.width - self.width) / 2;
+                            y: (parent.height - self.height) / 2;
+                        }
+                    }
+                }
+            }
+
+            // ---- 通知列表：点一下即标记为已读，分段筛选会实时过滤 ----
+            for notice[i] in root.notices: NoticeCard {
+                notice: notice;
+                visible: root.tab == 0
+                    || (root.tab == 1 && notice.unread)
+                    || (root.tab == 2 && notice.important);
+                open => { root.notices[i].unread = false; }
+            }
+
+            Text {
+                text: "已经到底啦 · 共 \{root.notices.length} 条通知";
+                font-size: 12px;
+                color: Palette.text-3;
+                horizontal-alignment: center;
+                horizontal-stretch: 1;
+            }
+        }
+    }
+
+    // ---- 底部导航 ----
+    nav-bar := Rectangle {
+        x: 0;
+        y: parent.height - self.height;
+        width: parent.width;
+        height: nav-bar-height;
+        background: #0d1322f5;
+
+        // 顶部分割线
+        Rectangle {
+            width: parent.width;
+            height: 1px;
+            background: #ffffff14;
+        }
+
+        HorizontalLayout {
+            x: 0;
+            y: 0;
+            width: parent.width;
+            height: 64px;
+
+            for item[i] in root.nav-items: NavCell {
+                label: item.label;
+                icon: item.icon;
+                badge: item.badge;
+                active: root.nav == i;
+                horizontal-stretch: 1;
+                select => { root.nav = i; }
+            }
+        }
     }
 }
