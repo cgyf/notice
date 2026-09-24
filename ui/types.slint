@@ -1,0 +1,20 @@
+// 数据结构：界面和 Rust 共用同一份定义。
+// Rust 侧由 slint-build 生成同名 struct（string -> SharedString，int -> i32），
+// 所以改字段名两边会一起变，不存在对不上的问题。
+
+// 通知类型：0=公告 1=活动 2=安全 3=更新
+export struct Notice {
+    kind: int,
+    title: string,
+    body: string,
+    tag: string,
+    time: string,
+    unread: bool,
+    important: bool,
+}
+
+export struct NavItem {
+    label: string,
+    icon: string,
+    badge: int,
+}

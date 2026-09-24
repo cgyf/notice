@@ -1,0 +1,23 @@
+// 可复用组件：统一尺寸的线性图标。
+// 只用到主题里的颜色，跟具体界面无关，任何页面都能拿去用。
+
+import { Palette } from "../theme.slint";
+
+export component Icon inherits Path {
+    in property <string> d;
+    in-out property <color> tint: Palette.text-2;
+    in property <length> icon-size: 20px;
+
+    width: icon-size;
+    height: icon-size;
+    viewbox-width: 24;
+    viewbox-height: 24;
+    commands: d;
+    fill: transparent;
+    stroke: tint;
+    stroke-width: 1.8px;
+    stroke-line-cap: round;
+    stroke-line-join: round;
+
+    animate tint { duration: 200ms; }
+}

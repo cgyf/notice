@@ -1,0 +1,122 @@
+// 可复用组件：一条通知卡片。
+// 数据从外面传进来（notice），点击只对外发 open 回调，自己不做业务。
+
+import { Palette, Icons, Style } from "../theme.slint";
+import { Notice } from "../types.slint";
+import { Icon } from "icon.slint";
+import { Chip } from "chip.slint";
+
+export component NoticeCard inherits Rectangle {
+    in property <Notice> notice;
+    callback open();
+
+    height: card-layout.preferred-height;
+    border-radius: 20px;
+    border-width: 1px;
+    border-color: notice.unread ? Palette.accent.with-alpha(0.34) : Palette.stroke;
+    background: touch.pressed ? Palette.surface-2 : Palette.surface;
+    drop-shadow-color: #00000059;
+    drop-shadow-blur: 16px;
+    drop-shadow-offset-y: 8px;
+
+    // 按下去时轻微缩小，给点触感
+    transform-scale-x: touch.pressed ? 0.985 : 1.0;
+    transform-scale-y: touch.pressed ? 0.985 : 1.0;
+
+    animate background { duration: 120ms; }
+    animate border-color { duration: 200ms; }
+    animate transform-scale-x { duration: 120ms; }
+    animate transform-scale-y { duration: 120ms; }
+
+    card-layout := VerticalLayout {
+        padding: 14px;
+        spacing: 12px;
+
+        HorizontalLayout {
+            spacing: 12px;
+            cross-axis-alignment: center;
+
+            // 左侧图标底座
+            Rectangle {
+                width: 42px;
+                height: 42px;
+                border-radius: 14px;
+                background: Style.kind-color(notice.kind).with-alpha(notice.unread ? 0.24 : 0.13);
+                border-width: 1px;
+                border-color: Style.kind-color(notice.kind).with-alpha(notice.unread ? 0.34 : 0.16);
+
+                Icon {
+                    d: Style.kind-icon(notice.kind);
+                    tint: Style.kind-color(notice.kind);
+                    icon-size: 21px;
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                }
+            }
+
+            VerticalLayout {
+                spacing: 5px;
+
+                Text {
+                    text: notice.title;
+                    font-size: 15px;
+                    font-weight: notice.unread ? 700 : 500;
+                    color: notice.unread ? Palette.text-1 : Palette.text-2;
+                    height: 20px;
+                    overflow: elide;
+                }
+
+                Text {
+                    text: notice.body;
+                    font-size: 13px;
+                    color: Palette.text-2;
+                    // 多行正文：clip + max-lines 才能正常铺满整行；
+                    // 用 elide 的话 Slint 会把文本盒压到只剩省略号的宽度（CJK 尤其明显）。
+                    wrap: word-wrap;
+                    overflow: clip;
+                    max-lines: 2;
+                }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 8px;
+            cross-axis-alignment: center;
+
+            Chip {
+                label: notice.tag;
+                tint: Style.kind-color(notice.kind);
+            }
+
+            if notice.important: Chip {
+                label: "重要";
+                tint: Palette.warn;
+            }
+
+            Rectangle { horizontal-stretch: 1; } // 撑开：把时间和箭头挤到最右边
+
+            if notice.unread: Rectangle {
+                width: 7px;
+                height: 7px;
+                border-radius: 4px;
+                background: Palette.accent;
+            }
+
+            Text {
+                text: notice.time;
+                font-size: 11px;
+                color: Palette.text-3;
+            }
+
+            Icon {
+                d: Icons.chevron;
+                tint: Palette.text-3;
+                icon-size: 14px;
+            }
+        }
+    }
+
+    touch := TouchArea {
+        clicked => { root.open(); }
+    }
+}

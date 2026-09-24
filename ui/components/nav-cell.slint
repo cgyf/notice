@@ -1,0 +1,73 @@
+// 可复用组件：底部导航的一格。
+
+import { Palette } from "../theme.slint";
+import { Icon } from "icon.slint";
+
+export component NavCell inherits Rectangle {
+    in property <string> label;
+    in property <string> icon;
+    in property <int> badge: 0;
+    in property <bool> active: false;
+    callback select();
+
+    height: 64px;
+    background: transparent;
+
+    // 选中时的高亮胶囊
+    Rectangle {
+        width: 46px;
+        height: 30px;
+        border-radius: 15px;
+        background: Palette.accent.with-alpha(0.16);
+        opacity: root.active ? 1 : 0;
+        x: (parent.width - self.width) / 2;
+        y: 9px;
+        animate opacity { duration: 180ms; }
+    }
+
+    Icon {
+        d: root.icon;
+        tint: root.active ? Palette.accent : Palette.text-3;
+        icon-size: 21px;
+        x: (parent.width - self.width) / 2;
+        y: 13px;
+    }
+
+    Text {
+        text: root.label;
+        font-size: 10px;
+        font-weight: 600;
+        color: root.active ? Palette.accent : Palette.text-3;
+        horizontal-alignment: center;
+        x: 0;
+        y: 42px;
+        width: parent.width;
+        height: 13px;
+        animate color { duration: 180ms; }
+    }
+
+    // 未读数小角标
+    if root.badge > 0: Rectangle {
+        width: 16px;
+        height: 16px;
+        border-radius: 8px;
+        background: Palette.accent;
+        x: parent.width / 2 + 6px;
+        y: 8px;
+
+        Text {
+            text: "\{root.badge}";
+            font-size: 9px;
+            font-weight: 700;
+            color: #ffffff;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            width: parent.width;
+            height: parent.height;
+        }
+    }
+
+    TouchArea {
+        clicked => { root.select(); }
+    }
+}

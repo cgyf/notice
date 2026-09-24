@@ -1,0 +1,61 @@
+// 主题：配色表、图标路径、按通知类型取色的工具函数。
+// 这里只放"跟界面结构无关"的共享常量，谁需要就 import 谁。
+// 想换主题基本只改这一个文件。
+
+// ---------------------------------------------------------------------------
+// 1. 配色
+// ---------------------------------------------------------------------------
+export global Palette {
+    // 页面背景（深色渐变的两端）
+    out property <color> bg-top: #0a0d18;
+    out property <color> bg-bottom: #101728;
+
+    // 卡片 / 容器
+    out property <color> surface: #141b2c;
+    out property <color> surface-2: #1b2436;
+    out property <color> stroke: #ffffff14; // 8% 白：细描边
+    out property <color> stroke-strong: #ffffff2e;
+
+    // 文字三级灰阶
+    out property <color> text-1: #f2f5ff; // 标题
+    out property <color> text-2: #a5afc7; // 正文
+    out property <color> text-3: #6c7793; // 辅助信息
+
+    // 品牌色与状态色
+    out property <color> accent: #7c8cff;
+    out property <color> accent-2: #46d0ff;
+    out property <color> ok: #3ddc97;
+    out property <color> warn: #ffb454;
+    out property <color> violet: #b388ff;
+}
+
+// ---------------------------------------------------------------------------
+// 2. 图标：统一 24x24 视口的描边路径，风格一致且不依赖字体里的 emoji
+// ---------------------------------------------------------------------------
+export global Icons {
+    out property <string> search: "M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14M20.5 20.5l-3.6-3.6";
+    out property <string> sliders: "M4 21v-6M4 11V3M12 21v-10M12 7V3M20 21v-4M20 13V3M1.5 15h5M9.5 7h5M17.5 17h5";
+    out property <string> bell: "M6 9a6 6 0 0 1 12 0c0 6 2.5 8 2.5 8H3.5S6 15 6 9M10.3 20.5a2 2 0 0 0 3.4 0";
+    out property <string> home: "M3 10.5 12 3l9 7.5V20a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 20zM9.5 21.5v-7h5v7";
+    out property <string> star: "M12 3.5l2.7 5.4 6 .9-4.4 4.2 1.1 6-5.4-2.9-5.4 2.9 1.1-6L3.3 9.8l6-.9z";
+    out property <string> user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M5 20.5a7 7 0 0 1 14 0";
+    out property <string> shield: "M12 3l7 3v6c0 4.4-2.9 7.4-7 9-4.1-1.6-7-4.6-7-9V6zM9.2 12l2 2 3.6-3.8";
+    out property <string> refresh: "M20 5.5v4h-4M20 9.5a8 8 0 0 0-14-3.6M4 18.5v-4h4M4 14.5a8 8 0 0 0 14 3.6";
+    out property <string> megaphone: "M4 10.5v3a1 1 0 0 0 1 1h2l7 4V5.5l-7 4H5a1 1 0 0 0-1 1zM17 9.5a3.5 3.5 0 0 1 0 5";
+    out property <string> chevron: "m9.5 5.5 6.5 6.5-6.5 6.5";
+}
+
+// ---------------------------------------------------------------------------
+// 3. 通知类型（0=公告 1=活动 2=安全 3=更新）对应的颜色 / 图标
+// ---------------------------------------------------------------------------
+export global Style {
+    public pure function kind-color(kind: int) -> color {
+        kind == 0
+            ? Palette.accent
+            : (kind == 1 ? Palette.violet : (kind == 2 ? Palette.ok : Palette.warn))
+    }
+
+    public pure function kind-icon(kind: int) -> string {
+        kind == 0 ? Icons.bell : (kind == 1 ? Icons.megaphone : (kind == 2 ? Icons.shield : Icons.refresh))
+    }
+}

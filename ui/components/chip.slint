@@ -1,0 +1,27 @@
+// 可复用组件：小圆角标签（「公告」「重要」这类状态）。
+
+import { Palette } from "../theme.slint";
+
+export component Chip inherits Rectangle {
+    in property <string> label;
+    in property <color> tint: Palette.accent;
+    in property <bool> solid: false;
+
+    height: 22px;
+    width: chip_label.preferred-width + 20px;
+    border-radius: 11px;
+    background: solid ? tint : tint.with-alpha(0.14);
+
+    chip_label := Text {
+        text: label;
+        font-size: 11px;
+        font-weight: 600;
+        color: solid ? #ffffff : tint;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        x: 10px;
+        y: 0;
+        width: parent.width - 20px;
+        height: parent.height;
+    }
+}
