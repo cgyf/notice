@@ -2,6 +2,12 @@ name: Release
 
 # 打 tag 时自动构建 APK，并挂到对应的 GitHub Release 上；
 # 也可以在 Actions 页面手动触发（手动触发只产出 artifact，不发 Release）。
+#
+# 签名：cargo-rapk 只在 dev profile 会自动生成 debug.keystore，release profile
+# 没有配置密钥就直接报 "Configure a release keystore via
+# [package.metadata.android.signing.release]"。当前选用 B 方案：构建时用 keytool
+# 现场生成一个 debug 性质的密钥，通过 CARGO_RAPK_RELEASE_KEYSTORE* 环境变量交给
+# cargo-rapk。这样出来的包能装能测，但不能上架，而且每次 CI 的密钥都不同。
 on:
   push:
     tags:
@@ -49,6 +55,22 @@ jobs:
         # 有可能被收集步骤误当成这次的产物，先删掉
         run: find target -type f -name '*.apk' -delete 2>/dev/null || true
 
+      - name: 生成 release 签名密钥（debug 密钥，仅供测试安装）
+        # 不用 secrets 的临时方案：现场生成一个 keystore 给 release 构建签名。
+        # 想换成正式签名时，把下面的 keytool 换成「从 secret 里 base64 -d 出 keystore」即可，
+        # 后面 Build APK 的环境变量不用动。
+        env:
+          KEYSTORE_PATH: ${{ runner.temp }}/release-debug.keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore "$KEYSTORE_PATH" \
+            -storetype JKS \
+            -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=Android Debug,O=Android,C=US"
+          ls -l "$KEYSTORE_PATH"
+
       - name: 决定构建类型
         id: profile
         env:
@@ -66,6 +88,13 @@ jobs:
           fi
 
       - name: Build APK
+        env:
+          # 变量名规则是 CARGO_RAPK_<大写 profile>_KEYSTORE + 可选后缀，
+          # release profile 对应下面这一组（优先级高于 Cargo.toml 里的 signing 配置）。
+          CARGO_RAPK_RELEASE_KEYSTORE: ${{ runner.temp }}/release-debug.keystore
+          CARGO_RAPK_RELEASE_KEYSTORE_PASSWORD: android
+          CARGO_RAPK_RELEASE_KEYSTORE_ALIAS: androiddebugkey
+          CARGO_RAPK_RELEASE_KEYSTORE_KEY_PASSWORD: android
         run: cargo rapk build --target aarch64-linux-android ${{ steps.profile.outputs.args }}
 
       - name: 收集 APK
