@@ -1,0 +1,108 @@
+name: Release
+
+# 打 tag 时自动构建 APK，并挂到对应的 GitHub Release 上；
+# 也可以在 Actions 页面手动触发（手动触发只产出 artifact，不发 Release）。
+on:
+  push:
+    tags:
+      # 只认 v 开头的 tag（v1.0.0 / v1.0.0-beta.1）。
+      # 想让任意 tag 都触发，把下面这行换成 "**"。
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "构建类型：debug 快，release 是正式包"
+        type: choice
+        options:
+          - release
+          - debug
+        default: release
+
+env:
+  CARGO_TERM_COLOR: always
+
+# 给 Release 上传文件需要写权限（默认的 GITHUB_TOKEN 只有读权限）
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: setup compile env
+        run: rustup target add aarch64-linux-android
+
+      # 缓存 cargo 的 registry 和 target 目录：Slint 带的 Skia 第一次编译很慢，
+      # 之后命中缓存就能快很多
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: install rapk
+        # 固定版本 + --locked，避免上游发新版时 CI 突然挂掉
+        run: cargo install cargo-rapk --version "=0.22.1" --locked
+
+      - name: 清掉缓存里可能残留的旧 APK
+        # rust-cache 会把 target 目录一起恢复，上一次构建留下的 APK
+        # 有可能被收集步骤误当成这次的产物，先删掉
+        run: find target -type f -name '*.apk' -delete 2>/dev/null || true
+
+      - name: 决定构建类型
+        id: profile
+        env:
+          EVENT: ${{ github.event_name }}
+          PROFILE: ${{ inputs.profile }}
+        run: |
+          # 手动触发里选了 debug 就用 cargo 默认的 debug 构建（不加参数），
+          # 其余情况（打 tag）都是 --release。
+          # 注意别写成 `cond && '' || '--release'`：GitHub 表达式里空字符串是假值，
+          # 那样选 debug 也会变成 --release。
+          if [ "$EVENT" = "workflow_dispatch" ] && [ "$PROFILE" = "debug" ]; then
+            echo "args=" >> "$GITHUB_OUTPUT"
+          else
+            echo "args=--release" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build APK
+        run: cargo rapk build --target aarch64-linux-android ${{ steps.profile.outputs.args }}
+
+      - name: 收集 APK
+        id: collect
+        env:
+          # tag 名字就是版本号；手动触发时是分支名
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          # tag / 分支名里可能有 / 之类的字符（release/v1.0、feature/x），
+          # 换成 - 再当文件名，否则 artifact 名不合法、cp 也会失败
+          safe_name=$(printf '%s' "$REF_NAME" | sed 's/[^A-Za-z0-9._-]/-/g')
+          echo "artifact_name=notice-apk-$safe_name" >> "$GITHUB_OUTPUT"
+
+          mkdir -p dist
+          rm -f dist/*.apk
+          find target -type f -name '*.apk' -exec cp {} "dist/notice-$safe_name.apk" \;
+          # 没找到 APK 就直接在这一步报错，别拖到 upload 步骤才失败
+          test -f "dist/notice-$safe_name.apk"
+          ls -lh dist
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.collect.outputs.artifact_name }}
+          path: dist/*.apk
+          if-no-files-found: error
+
+      - name: 创建 / 更新 Release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$GITHUB_REF_NAME"
+          flags=(--title "$tag" --generate-notes --verify-tag)
+          # v1.0.0-beta 这类带 - 的 tag 当作预发布
+          case "$tag" in
+            *-*) flags+=(--prerelease) ;;
+          esac
+          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" "${flags[@]}"
+          gh release upload "$tag" dist/*.apk --clobber
