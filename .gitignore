@@ -1,1 +1,5 @@
 /target
+
+# 签名密钥绝不进仓库（release 构建从 GitHub Secrets 里取）
+*.jks
+*.keystore

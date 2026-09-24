@@ -1,5 +1,5 @@
 [package]
-name = "test"
+name = "notice"
 version = "0.1.0"
 edition = "2024"
 
@@ -34,7 +34,13 @@ build_targets = ["aarch64-linux-android"]
 # 可选配置
 resources = "resources"   # 资源文件夹（注意：这个文件夹必须真实存在，否则依然会报错）
 assets = "assets"         # 资产文件夹
-apk_name = "test"         # 最终 APK 文件名
+apk_name = "notice"       # 最终 APK 文件名
+
+# 应用在桌面（启动器 / 最近任务 / 应用信息页）显示的名字。
+# cargo-rapk 的默认值取编译产物名（这里是 crate 名），所以必须显式写成 notice，
+# 否则换个 crate 名 label 就会跟着变。
+[package.metadata.android.application]
+label = "notice"
 
 # SDK 版本必须写在这张表里。写在 [package.metadata.android] 顶层会被当作未知字段静默忽略，
 # 那种情况下 APK 用的是 NDK 的默认值（这里是 35），写在下面的值才真正生效。
