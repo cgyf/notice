@@ -15,7 +15,10 @@ android_logger = "0.15.1"
 android-activity = { version = "0.6", features = ["native-activity"] }
 # 只开 backend-android-activity-06：Slint 的 Android 后端固定使用 Skia 渲染，femtovg 在
 # Android 上是被禁用的（没有任何后端会用它），所以不需要也不能靠 renderer-femtovg 换渲染器。
-slint = { version = "1.18.0", features = ["backend-android-activity-06"] }
+# default-features = false：Slint 默认打开的是 winit/wayland/x11/femtovg/accesskit 那一整套
+# 桌面后端，它们不会编进 Android 包，但会实打实写进 Cargo.lock（586 -> 343 个包）。
+# compat-1-18 不能省：slint 用它做向前兼容检查，缺了会直接 compile_error。
+slint = { version = "1.18.0", default-features = false, features = ["std", "backend-android-activity-06", "compat-1-18"] }
 
 # build.rs 用的编译器（把 ui/*.slint 编译成 Rust 代码）。
 # 构建脚本永远在宿主平台上编译运行，所以这里不能挂在 android target 下面，
