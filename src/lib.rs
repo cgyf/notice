@@ -9,6 +9,10 @@ use std::sync::OnceLock;
 // 引入 ui/ 下的 UI：由 build.rs 调用 slint-build 编译，生成 AppWindow 等类型。
 slint::include_modules!();
 
+// 通知数据的来源（界面要显示的内容都在这里，ui/*.slint 里不写死文案）。
+// 以后接真实接口，改这个模块就行。
+mod backend;
+
 static LOGGER_ONCE: OnceLock<()> = OnceLock::new();
 
 #[unsafe(no_mangle)]
@@ -26,8 +30,13 @@ fn android_main(app: AndroidApp) {
     // 初始化 Slint 的 Android 后端
     slint::android::init(app).unwrap();
 
-    // 创建并运行界面
-    AppWindow::new().unwrap().run().unwrap();
+    // 创建界面，并在 run() 之前把数据灌进去：界面上看到的都是后端给的内容
+    let ui = AppWindow::new().unwrap();
+    ui.set_notices(backend::notices());
+    ui.set_pinned(backend::pinned());
+    ui.set_today(backend::today());
+
+    ui.run().unwrap();
 
     log::info!("Slint 窗口关闭");
 }

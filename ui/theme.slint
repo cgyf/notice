@@ -49,10 +49,17 @@ export global Icons {
 // 3. 通知类型（0=公告 1=活动 2=安全 3=更新）对应的颜色 / 图标
 // ---------------------------------------------------------------------------
 export global Style {
-    public pure function kind-color(kind: int) -> color {
-        kind == 0
+    // 标签配色：后端只给语义化的 tone（0=品牌蓝 1=紫 2=绿 3=橙），
+    // 具体颜色留在主题里，换主题不用动后端数据。
+    public pure function tone-color(tone: int) -> color {
+        tone == 0
             ? Palette.accent
-            : (kind == 1 ? Palette.violet : (kind == 2 ? Palette.ok : Palette.warn))
+            : (tone == 1 ? Palette.violet : (tone == 2 ? Palette.ok : Palette.warn))
+    }
+
+    // 卡片主色：通知类型（0=公告 1=活动 2=安全 3=更新）用的是同一套色板
+    public pure function kind-color(kind: int) -> color {
+        tone-color(kind)
     }
 
     public pure function kind-icon(kind: int) -> string {

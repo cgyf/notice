@@ -83,14 +83,11 @@ export component NoticeCard inherits Rectangle {
             spacing: 8px;
             cross-axis-alignment: center;
 
-            Chip {
-                label: notice.tag;
-                tint: Style.kind-color(notice.kind);
-            }
-
-            if notice.important: Chip {
-                label: "重要";
-                tint: Palette.warn;
+            // 标签整体由后端数据驱动：显示后端给的 label，颜色按后端给的 tone 取。
+            // 这里不写死任何标签文字，加/减标签只改后端数据。
+            for chip[i] in notice.chips: Chip {
+                label: chip.label;
+                tint: Style.tone-color(chip.tone);
             }
 
             Rectangle { horizontal-stretch: 1; } // 撑开：把时间和箭头挤到最右边

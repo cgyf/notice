@@ -3,17 +3,21 @@
 //
 // 目录结构：
 //   ui/theme.slint                  —— Palette 配色 / Icons 图标 / Style 取色工具
-//   ui/types.slint                  —— Notice、NavItem 数据结构（Rust 侧会生成同名 struct）
+//   ui/types.slint                  —— Notice / NoticeChip / PinnedNotice / NavItem 数据结构
+//                                      （Rust 侧会生成同名 struct）
 //   ui/components/icon.slint        —— Icon：统一尺寸的线性图标
 //   ui/components/chip.slint        —— Chip：小圆角标签
 //   ui/components/notice-card.slint —— NoticeCard：一条通知卡片
 //   ui/components/nav-cell.slint    —— NavCell：底部导航的一格
 //   ui/app-window.slint（本文件）    —— AppWindow：标题栏 + 搜索框 + 分段筛选 + 卡片列表 + 底部导航
 //
+// 数据从哪来：界面上显示的通知内容（含卡片标签文案）全部由 Rust 侧灌进来，见
+// src/backend.rs 与 src/lib.rs；.slint 文件里只留结构、配色和空默认值。
+//
 // 注意：组件要跨文件用，定义方必须写 export；import 的路径是相对当前文件所在目录的。
 
 import { Palette, Icons } from "theme.slint";
-import { Notice, NavItem } from "types.slint";
+import { Notice, PinnedNotice, NavItem } from "types.slint";
 import { Icon } from "components/icon.slint";
 import { NoticeCard } from "components/notice-card.slint";
 import { NavCell } from "components/nav-cell.slint";
@@ -27,53 +31,12 @@ export component AppWindow inherits Window {
     // 真机上就不会跟着屏幕大小走；窗口尺寸交给平台（Android 就是整屏）。
     background: @linear-gradient(180deg, Palette.bg-top 0%, Palette.bg-bottom 100%);
 
-    in-out property <[Notice]> notices: [
-        {
-            kind: 0,
-            title: "Slint 1.18 已发布",
-            body: "新的渲染后端上线，启动更快、动画更顺滑，建议升级。",
-            tag: "公告",
-            time: "09:24",
-            unread: true,
-            important: true,
-        },
-        {
-            kind: 1,
-            title: "本周五线上分享会",
-            body: "主题：用一个下午写个 Android 小程序。报名截止周四 18:00。",
-            tag: "活动",
-            time: "昨天",
-            unread: true,
-            important: false,
-        },
-        {
-            kind: 2,
-            title: "新的登录设备",
-            body: "Pixel 8 · 上海 · 刚刚。如果不是你本人操作，请立刻修改密码。",
-            tag: "安全",
-            time: "昨天",
-            unread: true,
-            important: false,
-        },
-        {
-            kind: 3,
-            title: "构建流水线已修复",
-            body: "缓存策略调整完成，CI 构建时间从 6 分钟降到 3 分钟。",
-            tag: "更新",
-            time: "周二",
-            unread: false,
-            important: false,
-        },
-        {
-            kind: 1,
-            title: "十二月社区投票开启",
-            body: "为你最想要的新特性投上一票，投票结果会在下次迭代里优先实现。",
-            tag: "活动",
-            time: "上周",
-            unread: false,
-            important: false,
-        },
-    ];
+    // 通知列表：内容是后端（src/backend.rs）灌进来的，这里只留空的默认值。
+    // 界面里不写死任何通知文案，标签文字也来自后端数据。
+    in-out property <[Notice]> notices: [];
+
+    // 置顶公告条，同样由后端填
+    in-out property <PinnedNotice> pinned: { label: "", title: "", summary: "" };
 
     property <[NavItem]> nav-items: [
         { label: "首页", icon: Icons.home, badge: 0 },
@@ -85,8 +48,8 @@ export component AppWindow inherits Window {
     // 当前选中的分段（0=全部 1=未读 2=重要）与底部导航项，Rust 侧也可以设置
     in-out property <int> tab: 0;
     in-out property <int> nav: 1;
-    // 顶部日期文案（真实项目里可以由 Rust 侧填今天的日期）
-    in-out property <string> today: "2026 年 9 月 24 日 · 星期四";
+    // 顶部日期文案，由后端填
+    in-out property <string> today: "";
 
     // 刘海屏 / 手势条留白；桌面预览时 safe-area-insets 是 0，所以给个最小值
     property <length> pad-top: max(self.safe-area-insets.top, 18px);
@@ -298,7 +261,7 @@ export component AppWindow inherits Window {
                         spacing: 6px;
 
                         Text {
-                            text: "置顶 · 公告";
+                            text: root.pinned.label;
                             font-size: 11px;
                             font-weight: 600;
                             color: #ffffffb8;
@@ -306,7 +269,7 @@ export component AppWindow inherits Window {
                         }
 
                         Text {
-                            text: "Slint 1.18 已发布";
+                            text: root.pinned.title;
                             font-size: 17px;
                             font-weight: 700;
                             color: #ffffff;
@@ -314,7 +277,7 @@ export component AppWindow inherits Window {
                         }
 
                         Text {
-                            text: "新的渲染后端，启动更快、动画更顺滑。";
+                            text: root.pinned.summary;
                             font-size: 13px;
                             color: #ffffffd6;
                             wrap: word-wrap;

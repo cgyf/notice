@@ -1,16 +1,36 @@
 // 数据结构：界面和 Rust 共用同一份定义。
-// Rust 侧由 slint-build 生成同名 struct（string -> SharedString，int -> i32），
+// Rust 侧由 slint-build 生成同名 struct（string -> SharedString，int -> i32，
+// [T] -> ModelRc<T>），
 // 所以改字段名两边会一起变，不存在对不上的问题。
+//
+// 这些结构描述的是「后端下发的数据」：界面只负责渲染，不往里面塞写死的文案。
+
+// 通知卡片上的一枚标签（「公告」「重要」这类）。
+export struct NoticeChip {
+    // 显示文案
+    label: string,
+    // 色调：0=品牌蓝 1=紫 2=绿 3=橙(警示)。
+    // 只传语义化的色调，具体颜色留在前端主题里（见 theme.slint 的 Style.tone-color）。
+    tone: int,
+}
 
 // 通知类型：0=公告 1=活动 2=安全 3=更新
 export struct Notice {
     kind: int,
     title: string,
     body: string,
-    tag: string,
+    // 卡片底部的标签。文案和色调都由后端给，前端不做「kind -> 标签文字」的映射。
+    chips: [NoticeChip],
     time: string,
     unread: bool,
     important: bool,
+}
+
+// 顶部置顶公告条
+export struct PinnedNotice {
+    label: string,
+    title: string,
+    summary: string,
 }
 
 export struct NavItem {
