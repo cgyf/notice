@@ -1,4 +1,4 @@
-name: Rust
+name: CI
 
 on:
   push:
@@ -19,8 +19,7 @@ jobs:
     - name: setup compile env
       run: rustup target add aarch64-linux-android
     - name: install rapk
-      # 固定版本 + --locked，避免上游发新版时 CI 突然挂掉
-      run: cargo install cargo-rapk --version "=0.22.1" --locked
+      run: cargo install cargo-rapk
     - name: Build
       run: cargo rapk build --target aarch64-linux-android
     - name: Upload APK
