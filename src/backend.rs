@@ -89,9 +89,9 @@ pub fn pinned() -> PinnedNotice {
     }
 }
 
-// 顶部日期（真实项目里按当前时区算出来）
+// 顶部日期
 pub fn today() -> SharedString {
     let now = OffsetDateTime::now_local().unwrap_or_else(|_| OffsetDateTime::now_utc());
     let format = format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
-    SharedString::from(format)
+    SharedString::from(format!("{}", now.format(&fmt).unwrap()))
 }
