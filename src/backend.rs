@@ -93,5 +93,5 @@ pub fn pinned() -> PinnedNotice {
 pub fn today() -> SharedString {
     let now = OffsetDateTime::now_local().unwrap_or_else(|_| OffsetDateTime::now_utc());
     let format = format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
-    SharedString::from(format!("{}", now.format(&fmt).unwrap()))
+    SharedString::from(format!("{}", now.format(&format).unwrap()))
 }
