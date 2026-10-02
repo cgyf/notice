@@ -18,6 +18,10 @@ jobs:
     - uses: actions/checkout@v4
     - name: setup compile env
       run: rustup target add aarch64-linux-android
+    
+    - name: Rust cache
+      uses: Swatinem/rust-cache@v2
+
     - name: install rapk
       run: cargo install cargo-rapk
     - name: Build
