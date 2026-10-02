@@ -24,8 +24,7 @@ jobs:
 
     - name: install rapk
       run: cargo install cargo-rapk
-    - name: rust cllipy
-      run: cargo cllipy
+
     - name: Build
       run: cargo rapk build --target aarch64-linux-android
     - name: Upload APK

@@ -8,15 +8,18 @@ on:
 
 jobs:
   fmt_and_clipy:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
+      - name: setup compile env
+        run: rustup target add aarch64-linux-android
+      
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
 
-      - uses: Swatinem/rust-cache@v2
+      - name: Run fmt
+        run: cargo fmt
 
       - name: Run Clippy
         run: cargo clippy --all-targets --all-features --no-deps -- -D warnings
