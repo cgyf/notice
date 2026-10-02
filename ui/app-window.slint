@@ -57,7 +57,7 @@ export component AppWindow inherits Window {
     property <length> nav-bar-height: 64px + self.pad-bottom;
 
     // 背景光晕（纯装饰，让深色背景不那么平）
-    Rectangle {
+    glow1 := Rectangle {
         x: -90px;
         y: -150px;
         width: 340px;
@@ -65,7 +65,7 @@ export component AppWindow inherits Window {
         border-radius: 170px;
         background: @radial-gradient(circle, Palette.accent.with-alpha(0.30) 0%, transparent 70%);
     }
-    Rectangle {
+    glow2 := Rectangle {
         x: parent.width - 180px;
         y: -70px;
         width: 280px;
@@ -312,7 +312,7 @@ export component AppWindow inherits Window {
                 open => { root.notices[i].unread = false; }
             }
 
-            Text {
+            tip-text := Text {
                 text: "已经到底啦 · 共 \{root.notices.length} 条通知";
                 font-size: 12px;
                 color: Palette.text-3;
@@ -329,14 +329,6 @@ export component AppWindow inherits Window {
         width: parent.width;
         height: nav-bar-height;
         background: #0d1322f5;
-
-        // 顶部分割线
-        Rectangle {
-            width: parent.width;
-            height: 1px;
-            background: #ffffff14;
-        }
-
         HorizontalLayout {
             x: 0;
             y: 0;

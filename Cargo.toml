@@ -9,6 +9,8 @@ crate-type = ["cdylib"]
 # 这是一个只在 Android 上构建的 crate（见 src/lib.rs 顶部的 #![cfg(target_os = "android")]），
 # 所以依赖全部挂在 Android target 下面：在桌面平台上跑 cargo check / rust-analyzer 也不会
 # 报 "undeclared crate `slint`" 之类的错。
+[dependencies]
+time = { version = "0.3", features = ["local-offset", "formatting", "macros"] }
 [target.'cfg(target_os = "android")'.dependencies]
 log = "0.4"
 android_logger = "0.15.1"
