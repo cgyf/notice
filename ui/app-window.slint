@@ -31,8 +31,7 @@ export component AppWindow inherits Window {
     // 真机上就不会跟着屏幕大小走；窗口尺寸交给平台（Android 就是整屏）。
     background: @linear-gradient(180deg, Palette.bg-top 0%, Palette.bg-bottom 100%);
 
-    // 通知列表：内容是后端（src/backend.rs）灌进来的，这里只留空的默认值。
-    // 界面里不写死任何通知文案，标签文字也来自后端数据。
+    // 通知列表
     in-out property <[Notice]> notices: [];
 
     // 置顶公告条，同样由后端填
@@ -244,7 +243,7 @@ export component AppWindow inherits Window {
             }
 
             // ---- 置顶公告 ----
-            Rectangle {
+            pinned-notice := Rectangle {
                 border-radius: 22px;
                 background: @linear-gradient(135deg, #6e63ff 0%, #3fa9f5 100%);
                 drop-shadow-color: Palette.accent.with-alpha(0.35);
@@ -254,13 +253,14 @@ export component AppWindow inherits Window {
                 HorizontalLayout {
                     padding: 16px;
                     spacing: 12px;
+                    alignment: LayoutAlignment.stretch;
                     cross-axis-alignment: center;
 
                     VerticalLayout {
                         horizontal-stretch: 1;
                         spacing: 6px;
 
-                        Text {
+                        pinned-label := Text {
                             text: root.pinned.label;
                             font-size: 11px;
                             font-weight: 600;
@@ -268,7 +268,7 @@ export component AppWindow inherits Window {
                             letter-spacing: 1px;
                         }
 
-                        Text {
+                        pinned-title := Text {
                             text: root.pinned.title;
                             font-size: 17px;
                             font-weight: 700;
@@ -276,7 +276,7 @@ export component AppWindow inherits Window {
                             overflow: elide;
                         }
 
-                        Text {
+                        pinned-summary := Text {
                             text: root.pinned.summary;
                             font-size: 13px;
                             color: #ffffffd6;
@@ -286,13 +286,13 @@ export component AppWindow inherits Window {
                         }
                     }
 
-                    Rectangle {
+                    jump-arrow := Rectangle {
                         width: 34px;
                         height: 34px;
                         border-radius: 17px;
                         background: #ffffff2e;
 
-                        Icon {
+                    jump-icon := Icon {
                             d: Icons.chevron;
                             tint: #ffffff;
                             icon-size: 16px;
