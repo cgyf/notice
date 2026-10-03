@@ -102,13 +102,14 @@ export component AppWindow inherits Window {
                     horizontal-stretch: 1;
                     spacing: 6px;
 
-                    Text {
-                        text: root.today;
+                    date := Text {
+                        font-italic: false;
                         font-size: 12px;
+                        stroke-style: TextStrokeStyle.outside;
                         color: Palette.text-3;
                     }
 
-                    Text {
+                    title := Text {
                         text: "通知中心";
                         font-size: 26px;
                         font-weight: 700;
@@ -147,7 +148,7 @@ export component AppWindow inherits Window {
             }
 
             // ---- 搜索框 ----
-            Rectangle {
+            searchbar := Rectangle {
                 height: 46px;
                 border-radius: 15px;
                 background: #ffffff0d;

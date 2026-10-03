@@ -1,16 +1,14 @@
 [package]
 name = "notice"
-version = "0.1.0"
+version = "0.1.4"
 edition = "2024"
 
 [lib]
 crate-type = ["cdylib"]
 
-# 这是一个只在 Android 上构建的 crate（见 src/lib.rs 顶部的 #![cfg(target_os = "android")]），
-# 所以依赖全部挂在 Android target 下面：在桌面平台上跑 cargo check / rust-analyzer 也不会
-# 报 "undeclared crate `slint`" 之类的错。
 [dependencies]
 time = { version = "0.3", features = ["local-offset", "formatting", "macros"] }
+
 [target.'cfg(target_os = "android")'.dependencies]
 log = "0.4"
 android_logger = "0.15.1"
@@ -22,9 +20,6 @@ android-activity = { version = "0.6", features = ["native-activity"] }
 # compat-1-18 不能省：slint 用它做向前兼容检查，缺了会直接 compile_error。
 slint = { version = "1.18.0", default-features = false, features = ["std", "backend-android-activity-06", "compat-1-18"] }
 
-# build.rs 用的编译器（把 ui/*.slint 编译成 Rust 代码）。
-# 构建脚本永远在宿主平台上编译运行，所以这里不能挂在 android target 下面，
-# 否则在桌面平台 cargo check 时会找不到 slint_build。
 [build-dependencies]
 slint-build = "1.18.0"
 
